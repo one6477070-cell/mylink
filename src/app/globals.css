@@ -1,0 +1,158 @@
+@import "tailwindcss";
+
+/*
+ * 디자인: 블랙박스 극장의 검은 바닥 위에 붙인 바미리(스파이크) 테이프.
+ * - 키워드 = 흰 테이프에 마커 글씨 (Yeon Sung)
+ * - 생각, 화면 글씨 = 타자 친 글 (IBM Plex Sans KR)
+ * - 색은 '누가 이었는지'에만 쓴다. 선택은 흰 빛(스포트라이트)으로 표시
+ */
+:root {
+  --floor: #1e1e20;
+  --floor-raised: #28282b;
+  --floor-line: #3a3a3e;
+  --tape: #f0eee6;
+  --ink: #19191b;
+  --chalk: #e8e6df;
+  --chalk-dim: #a7a59e;
+
+  /* shadcn/ui 토큰: 나중에 `npx shadcn add`로 붙는 컴포넌트가 이 값을 쓴다 */
+  --background: var(--floor);
+  --foreground: var(--chalk);
+  --card: var(--floor-raised);
+  --card-foreground: var(--chalk);
+  --popover: var(--floor-raised);
+  --popover-foreground: var(--chalk);
+  --primary: var(--tape);
+  --primary-foreground: var(--ink);
+  --secondary: #323236;
+  --secondary-foreground: var(--chalk);
+  --muted: #2c2c30;
+  --muted-foreground: var(--chalk-dim);
+  --accent: #323236;
+  --accent-foreground: var(--chalk);
+  --destructive: #f0645a;
+  --border: var(--floor-line);
+  --input: #48484d;
+  --ring: #ffffff;
+  --radius: 0.625rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-floor: var(--floor);
+  --color-floor-raised: var(--floor-raised);
+  --color-floor-line: var(--floor-line);
+  --color-tape: var(--tape);
+  --color-ink: var(--ink);
+  --color-chalk: var(--chalk);
+  --color-chalk-dim: var(--chalk-dim);
+
+  --font-sans: "IBM Plex Sans KR", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-marker: "Yeon Sung", "IBM Plex Sans KR", sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    color-scheme: dark;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    /* 한국어는 어절 단위로 줄을 바꾼다 */
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* 흰 테이프: 손으로 찢은 양 끝 */
+.tape {
+  background: var(--tape);
+  color: var(--ink);
+  font-family: var(--font-marker);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  clip-path: polygon(
+    0 0, 100% 0,
+    calc(100% - 3px) 20%, 100% 40%, calc(100% - 2px) 60%, 100% 80%, calc(100% - 3px) 100%,
+    0 100%,
+    3px 80%, 0 60%, 2px 40%, 0 20%
+  );
+}
+
+/* 무대 평면도 격자. 중심선은 두지 않는다 */
+.floor-grid {
+  background-color: var(--floor);
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.035) 1px, transparent 1px);
+  background-size: 80px 80px;
+}
+
+/* 지도 위 툴팁 (force-graph) */
+.float-tooltip-kap {
+  background: var(--floor-raised) !important;
+  color: var(--chalk) !important;
+  border: 1px solid var(--floor-line);
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+  font: 500 13px/1.45 var(--font-sans) !important;
+  max-width: 260px;
+  white-space: normal;
+}
+
+/* 첫 화면: 테이프가 붙고 선이 그어지는 한 번의 움직임 */
+@keyframes tape-lay {
+  from { opacity: 0; transform: translateY(6px) scaleX(0.92); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes thread-draw {
+  to { stroke-dashoffset: 0; }
+}
+.lay-in {
+  animation: tape-lay 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: var(--delay, 0ms);
+  transform-box: fill-box;
+  transform-origin: left center;
+}
+.draw-in {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: thread-draw 900ms cubic-bezier(0.3, 0.6, 0.2, 1) forwards;
+  animation-delay: var(--delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

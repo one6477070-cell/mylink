@@ -1,0 +1,70 @@
+rules_version = '2';
+
+// 연결 지도 보안 규칙
+// Firebase 콘솔 → Firestore Database → 규칙 탭에 이 내용을 통째로 붙여 넣고 [게시]를 누른다.
+// Firestore 경로나 필드를 바꾸면 이 파일도 같이 바꾼다. (src/lib/store/firebase-store.ts 참고)
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // 초대 코드로 들어온 멤버인지
+    function isMember(spaceId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/spaces/$(spaceId)/members/$(request.auth.uid));
+    }
+
+    // 새로 쓰는 문서의 작성자가 나인지
+    function writtenByMe() {
+      return request.resource.data.createdBy.uid == request.auth.uid;
+    }
+
+    // 이미 있는 문서의 작성자가 나인지
+    function ownedByMe() {
+      return resource.data.createdBy.uid == request.auth.uid;
+    }
+
+    match /spaces/{spaceId} {
+      allow read: if isMember(spaceId);
+      allow write: if false;
+
+      // 초대 코드: 앱에서는 아무도 읽거나 쓸 수 없다. 콘솔에서만 만들고 바꾼다
+      match /secrets/{docId} {
+        allow read, write: if false;
+      }
+
+      // 멤버: 코드가 맞을 때만 자기 자신을 등록할 수 있다
+      match /members/{uid} {
+        allow read: if isMember(spaceId) || (signedIn() && request.auth.uid == uid);
+        allow create: if signedIn()
+          && request.auth.uid == uid
+          && request.resource.data.code
+             == get(/databases/$(database)/documents/spaces/$(spaceId)/secrets/join).data.code;
+        allow update, delete: if false;
+      }
+
+      // 조각: 멤버만 읽고 쓴다
+      match /fragments/{fragmentId} {
+        allow read: if isMember(spaceId);
+        allow create: if isMember(spaceId) && writtenByMe();
+        allow update: if isMember(spaceId) && (
+          // 내 조각은 고칠 수 있다 (작성자는 바꿀 수 없다)
+          (ownedByMe() && writtenByMe())
+          // 남이 먼저 던진 키워드에는 '나도 던졌다'만 더할 수 있다
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['throwers', 'lastThrownAt'])
+        );
+        allow delete: if isMember(spaceId) && ownedByMe();
+      }
+
+      // 연결: 멤버만 읽고, 내가 이은 선만 만들고 끊는다
+      match /links/{linkId} {
+        allow read: if isMember(spaceId);
+        allow create: if isMember(spaceId) && writtenByMe();
+        allow update: if isMember(spaceId) && ownedByMe() && writtenByMe();
+        allow delete: if isMember(spaceId) && ownedByMe();
+      }
+    }
+  }
+}
